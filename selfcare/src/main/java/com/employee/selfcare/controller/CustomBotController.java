@@ -5,6 +5,7 @@ import java.net.URLEncoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -370,8 +371,256 @@ public class CustomBotController {
         return new DateRange(startDate, endDate);
     }
 
+////
+    @GetMapping("/employeees")
+    public String getEmployeeDetails(@RequestParam("prompt") String prompt) {
+        String empId = extractEmployeeIdFromPromptss(prompt);
 
+        if (empId == null) {
+            return "Invalid prompt format. Please provide a valid Employee ID.";
+        }
 
+        // Retrieve the employee from the database based on the employee ID.
+        Long employeeId = Long.parseLong(empId);
+        Employee employee = employeeRepository.findByEmpId(employeeId);
+
+        if (employee == null) {
+            return "Employee not found.";
+        }
+
+        // Encode the prompt without the Employee ID for GPT-3.5 API.
+        String promptWithoutEmployeeId = prompt.replace("Employee ID:[" + empId + "]", "");
+        String encodedPrompt = encodePrompts(promptWithoutEmployeeId);
+
+        if (encodedPrompt == null) {
+            return "Error encoding the prompt.";
+        }
+
+        // Pass the encoded prompt to GPT-3.5 API and return the response.
+        ChatGPTRequest request = new ChatGPTRequest(model, encodedPrompt);
+        ChatGptResponse chatGptResponse = template.postForObject(apiURL, request, ChatGptResponse.class);
+        String gptResponse = chatGptResponse.getChoices().get(0).getMessage().getContent();
+
+        // Combine the GPT response with the employee details.
+        String result = "Employee Details:\n" +
+                "Employee ID: " + employee.getEmpId() + "\n" +
+                "Name: " + employee.getName() + "\n" +
+                "Current Designation: " + employee.getCurrentDesignation() + "\n" +
+                "Gender: " + employee.getGender() + "\n" +
+                "Interest Area: " + employee.getInterestArea() + "\n" +
+                "Tools: " + employee.getTools() + "\n" +
+                "Years of Experience: " + employee.getYearsExperience() + "\n" +
+                // Add other attributes here if needed.
+                // ...
+
+                // You can customize the response format as needed.
+                "\n" + gptResponse;
+
+        return result;
+    }
+
+/////
+    
+    @GetMapping("/employees")
+    public String getEmployeeDetails(@RequestParam(value = "id", required = false) Long id,
+                                     @RequestParam(value = "name", required = false) String name,
+                                     @RequestParam(value = "currentDesignation", required = false) String currentDesignation,
+                                     @RequestParam(value = "interestArea", required = false) String interestArea,
+                                     @RequestParam(value = "tools", required = false) String tools,
+                                     @RequestParam(value = "yearsExperience", required = false) Integer yearsExperience,
+                                     @RequestParam(value = "prompt", required = false) String prompt) {
+        // If the prompt is provided, extract the employee ID from it.
+        String empId = null;
+        if (prompt != null) {
+            empId = extractEmployeeIdFromPromptss(prompt);
+            if (empId == null) {
+                return "Invalid prompt format. Please provide a valid Employee ID.";
+            }
+        }
+
+        // Retrieve the employee from the database based on the provided filter criteria.
+        Employee employee = null;
+        if (id != null) {
+            employee = employeeRepository.findByEmpId(id);
+        } else if (name != null) {
+            employee = employeeRepository.findByName(name);
+        } else if (currentDesignation != null) {
+            employee = employeeRepository.findByCurrentDesignation(currentDesignation);
+        } else if (interestArea != null) {
+            employee = employeeRepository.findByInterestArea(interestArea);
+        } else if (tools != null) {
+            employee = employeeRepository.findByTools(tools);
+        } else if (yearsExperience != null) {
+            employee = employeeRepository.findByYearsExperience(yearsExperience);
+        }
+
+        if (employee == null) {
+            return "Employee not found.";
+        }
+
+        // Encode the prompt without the Employee ID for GPT-3.5 API.
+        String promptWithoutEmployeeId = prompt != null ? prompt.replace("Employee ID:[" + empId + "]", "") : null;
+        String encodedPrompt = promptWithoutEmployeeId != null ? encodePrompts(promptWithoutEmployeeId) : null;
+
+        if (encodedPrompt == null) {
+            return "Error encoding the prompt.";
+        }
+
+        // Pass the encoded prompt to GPT-3.5 API and return the response.
+        ChatGPTRequest request = new ChatGPTRequest(model, encodedPrompt);
+        ChatGptResponse chatGptResponse = template.postForObject(apiURL, request, ChatGptResponse.class);
+        String gptResponse = chatGptResponse.getChoices().get(0).getMessage().getContent();
+
+        // Combine the GPT response with the employee details.
+        String result = "Employee Details:\n" +
+                        "Employee ID: " + employee.getEmpId() + "\n" +
+                        "Name: " + employee.getName() + "\n" +
+                        "Current Designation: " + employee.getCurrentDesignation() + "\n" +
+                        "Gender: " + employee.getGender() + "\n" +
+                        "Interest Area: " + employee.getInterestArea() + "\n" +
+                        "Tools: " + employee.getTools() + "\n" +
+                        "Years of Experience: " + employee.getYearsExperience() + "\n" +
+                        // Add other attributes here if needed.
+                        // ...
+
+                        // You can customize the response format as needed.
+                        "\n" + gptResponse;
+
+        return result;
+    }
+
+  //////////////////
+    
+    
+    @GetMapping("/employeess")
+    public String getEmployeeDetailss(@RequestParam(value = "prompt", required = false) String prompt) {
+        if (prompt == null) {
+            return "Please provide a prompt containing the required information.";
+        }
+
+        // Extract the employee ID and other filter criteria from the prompt.
+        String empIdFilter = extractEmployeeIdFromPromptss(prompt);
+        Long idFilter = null;
+        if (empIdFilter != null) {
+            try {
+                idFilter = Long.parseLong(empIdFilter);
+            } catch (NumberFormatException e) {
+                return "Invalid Employee ID format.";
+            }
+        }
+        
+        String nameFilter = extractFilterFromPrompt(prompt, "name");
+        String currentDesignationFilter = extractFilterFromPrompt(prompt, "currentDesignation");
+        String interestAreaFilter = extractFilterFromPrompt(prompt, "interestArea");
+        String toolsFilter = extractFilterFromPrompt(prompt, "tools");
+        Integer yearsExperienceFilter = extractYearsExperienceFromPrompt(prompt);
+
+        // Fetch employees based on the filter criteria from the database.
+        List<Employee> employees = employeeRepository.findAllByFilters(idFilter, nameFilter, currentDesignationFilter, interestAreaFilter, toolsFilter, yearsExperienceFilter);
+
+        if (employees.isEmpty()) {
+            return "Employee not found.";
+        }
+
+        // Choose the first employee from the list (you can implement your logic here).
+        Employee employee = employees.get(0);
+
+        // Encode the prompt without the Employee ID and filter criteria for GPT-3.5 API.
+        String promptWithoutFilters = removeFilterFromPrompt(prompt, "id");
+        promptWithoutFilters = removeFilterFromPrompt(promptWithoutFilters, "name");
+        promptWithoutFilters = removeFilterFromPrompt(promptWithoutFilters, "currentDesignation");
+        promptWithoutFilters = removeFilterFromPrompt(promptWithoutFilters, "interestArea");
+        promptWithoutFilters = removeFilterFromPrompt(promptWithoutFilters, "tools");
+        promptWithoutFilters = removeFilterFromPrompt(promptWithoutFilters, "yearsExperience");
+
+        String encodedPrompt = encodePrompts(promptWithoutFilters);
+
+        if (encodedPrompt == null) {
+            return "Error encoding the prompt.";
+        }
+
+        // Pass the encoded prompt to GPT-3.5 API and return the response.
+        ChatGPTRequest request = new ChatGPTRequest(model, encodedPrompt);
+        ChatGptResponse chatGptResponse = template.postForObject(apiURL, request, ChatGptResponse.class);
+        String gptResponse = chatGptResponse.getChoices().get(0).getMessage().getContent();
+
+        // Combine the GPT response with the employee details.
+        String result = "Employee Details:\n" +
+                        "Employee ID: " + employee.getEmpId() + "\n" +
+                        "Name: " + employee.getName() + "\n" +
+                        "Current Designation: " + employee.getCurrentDesignation() + "\n" +
+                        "Gender: " + employee.getGender() + "\n" +
+                        "Interest Area: " + employee.getInterestArea() + "\n" +
+                        "Tools: " + employee.getTools() + "\n" +
+                        "Years of Experience: " + employee.getYearsExperience() + "\n" +
+                        // Add other attributes here if needed.
+                        // ...
+
+                        // You can customize the response format as needed.
+                        "\n" + gptResponse;
+
+        return result;
+    }
+
+    private String extractFilterFromPrompt(String prompt, String filterName) {
+        int startIndex = prompt.indexOf(filterName + "=");
+        if (startIndex == -1) {
+            return null;
+        }
+
+        startIndex += filterName.length() + 1; // Add 1 to skip '='
+        int endIndex = prompt.indexOf("&", startIndex);
+        if (endIndex == -1) {
+            endIndex = prompt.length();
+        }
+
+        return prompt.substring(startIndex, endIndex);
+    }
+
+    private Integer extractYearsExperienceFromPrompt(String prompt) {
+        String yearsExperienceFilter = extractFilterFromPrompt(prompt, "yearsExperience");
+        if (yearsExperienceFilter == null) {
+            return null;
+        }
+
+        try {
+            return Integer.parseInt(yearsExperienceFilter);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private String removeFilterFromPrompt(String prompt, String filterName) {
+        int startIndex = prompt.indexOf(filterName + "=");
+        if (startIndex == -1) {
+            return prompt;
+        }
+
+        int endIndex = prompt.indexOf("&", startIndex);
+        if (endIndex == -1) {
+            endIndex = prompt.length();
+        } else {
+            endIndex++; // Include '&' in endIndex to remove it.
+        }
+
+        return prompt.substring(0, startIndex) + prompt.substring(endIndex);
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
 }

@@ -30,6 +30,29 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 	
 	 @Query(value = "SELECT * FROM employee WHERE emp_id = :empId", nativeQuery = true)
 	    Employee findByEmpIdNative(String empId);
-	
+
+	Employee findByEmpId(Long empId);
+
+    Employee findByName(String name);
+
+    Employee findByCurrentDesignation(String currentDesignation);
+
+    Employee findByInterestArea(String interestArea);
+
+    Employee findByTools(String tools);
+
+    Employee findByYearsExperience(Integer yearsExperience);
+
+	@Query("SELECT e FROM Employee e WHERE (:idFilter is null OR e.empId = :idFilter)" +
+           " AND (:nameFilter is null OR e.name = :nameFilter)" +
+           " AND (:currentDesignationFilter is null OR e.currentDesignation = :currentDesignationFilter)" +
+           " AND (:interestAreaFilter is null OR e.interestArea = :interestAreaFilter)" +
+           " AND (:toolsFilter is null OR e.tools = :toolsFilter)" +
+           " AND (:yearsExperienceFilter is null OR e.yearsExperience = :yearsExperienceFilter)")
+    List<Employee> findAllByFilters(Long idFilter, String nameFilter, String currentDesignationFilter,
+                                    String interestAreaFilter, String toolsFilter, Integer yearsExperienceFilter);
+
+
+
 
 }
