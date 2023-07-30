@@ -1,6 +1,7 @@
 package com.employee.selfcare.repositories;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -24,4 +25,11 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
             String currentDesignation,
             Integer yearsExperience
     );
+
+	Employee findByEmpId(long employeeId);
+	
+	 @Query(value = "SELECT * FROM employee WHERE emp_id = :empId", nativeQuery = true)
+	    Employee findByEmpIdNative(String empId);
+	
+
 }
