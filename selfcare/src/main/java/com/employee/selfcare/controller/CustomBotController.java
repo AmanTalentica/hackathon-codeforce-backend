@@ -23,7 +23,9 @@ import com.employee.selfcare.entites.LeaveBalance;
 import com.employee.selfcare.repositories.EmployeeRepository;
 import com.employee.selfcare.repositories.LeaveAppliedRepository;
 import com.employee.selfcare.repositories.LeaveBalanceRepository;
-import com.javatechie.dto.ChatGptResponse;
+import com.employee.selfcare.entites.ChatGPTRequest;
+import com.employee.selfcare.entites.ChatGptResponse;
+
 
 
 @RestController
@@ -51,7 +53,7 @@ public class CustomBotController {
     @GetMapping("/chat")
     public String chat(@RequestParam("prompt") String prompt){
         ChatGPTRequest request=new ChatGPTRequest(model, prompt);
-        ChatGptResponse chatGptResponse = template.postForObject(apiURL, request, ChatGptResponse.class);
+        com.employee.selfcare.entites.ChatGptResponse chatGptResponse = template.postForObject(apiURL, request, ChatGptResponse.class);
         return chatGptResponse.getChoices().get(0).getMessage().getContent();
     }
 
