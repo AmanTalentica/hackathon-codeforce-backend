@@ -24,6 +24,7 @@ import com.employee.selfcare.entites.LeaveBalance;
 import com.employee.selfcare.repositories.EmployeeRepository;
 import com.employee.selfcare.repositories.LeaveAppliedRepository;
 import com.employee.selfcare.repositories.LeaveBalanceRepository;
+import com.employee.selfcare.services.GptService;
 import com.employee.selfcare.entites.ChatGPTRequest;
 import com.employee.selfcare.entites.ChatGptResponse;
 
@@ -50,7 +51,17 @@ public class CustomBotController {
     
     @Autowired
     private LeaveAppliedRepository leaveAppliedRepository;
+    
+    @Autowired
+    private GptService gptService;
 
+    @GetMapping("/generate-sql-query")
+    public String generateSQLQuery(@RequestParam("searchText") String searchText) {
+        return gptService.generateSQLQuery(searchText);
+    }
+    
+    
+    
     @GetMapping("/chat")
     public String chat(@RequestParam("prompt") String prompt){
         ChatGPTRequest request=new ChatGPTRequest(model, prompt);
